@@ -63,8 +63,8 @@ template <class ELFT> X86_64<ELFT>::X86_64() {
   TlsOffsetRel = R_X86_64_DTPOFF64;
   GotEntrySize = 8;
   GotPltEntrySize = 8;
-  PltEntrySize = 16;
-  PltHeaderSize = 16;
+  PltEntrySize = 24;
+  PltHeaderSize = 24;
   TlsGdRelaxSkip = 2;
   TrapInstr = 0xcccccccc; // 0xcc = INT3
 
@@ -130,11 +130,12 @@ template <class ELFT> void X86_64<ELFT>::writeGotPltHeader(uint8_t *Buf) const {
 template <class ELFT>
 void X86_64<ELFT>::writeGotPlt(uint8_t *Buf, const Symbol &S) const {
   // See comments in X86::writeGotPlt.
-  write64le(Buf, S.getPltVA() + 6);
+  write64le(Buf, S.getPltVA() + 14);
 }
 
 template <class ELFT> void X86_64<ELFT>::writePltHeader(uint8_t *Buf) const {
   const uint8_t PltData[] = {
+			0x0f, 0x1f, 0x84, 0, 0, 0, 0, 0, // nopq
       0xff, 0x35, 0, 0, 0, 0, // pushq GOTPLT+8(%rip)
       0xff, 0x25, 0, 0, 0, 0, // jmp *GOTPLT+16(%rip)
       0x0f, 0x1f, 0x40, 0x00, // nop
@@ -142,8 +143,8 @@ template <class ELFT> void X86_64<ELFT>::writePltHeader(uint8_t *Buf) const {
   memcpy(Buf, PltData, sizeof(PltData));
   uint64_t GotPlt = InX::GotPlt->getVA();
   uint64_t Plt = InX::Plt->getVA();
-  write32le(Buf + 2, GotPlt - Plt + 2); // GOTPLT+8
-  write32le(Buf + 8, GotPlt - Plt + 4); // GOTPLT+16
+	write32le(Buf + 10, GotPlt - Plt - 6); // GOTPLT+8
+	write32le(Buf + 16, GotPlt - Plt - 4); // GOTPLT+16
 }
 
 template <class ELFT>
@@ -151,15 +152,15 @@ void X86_64<ELFT>::writePlt(uint8_t *Buf, uint64_t GotPltEntryAddr,
                             uint64_t PltEntryAddr, int32_t Index,
                             unsigned RelOff) const {
   const uint8_t Inst[] = {
+			0x0f, 0x1f, 0x84, 0, 0, 0, 0, 0, // nopq
       0xff, 0x25, 0, 0, 0, 0, // jmpq *got(%rip)
       0x68, 0, 0, 0, 0,       // pushq <relocation index>
       0xe9, 0, 0, 0, 0,       // jmpq plt[0]
   };
   memcpy(Buf, Inst, sizeof(Inst));
-
-  write32le(Buf + 2, GotPltEntryAddr - PltEntryAddr - 6);
-  write32le(Buf + 7, Index);
-  write32le(Buf + 12, -getPltEntryOffset(Index) - 16);
+	write32le(Buf + 10, GotPltEntryAddr - PltEntryAddr - 14);
+	write32le(Buf + 15, Index);
+	write32le(Buf + 20, -getPltEntryOffset(Index) - 24);
 }
 
 template <class ELFT> RelType X86_64<ELFT>::getDynRel(RelType Type) const {
