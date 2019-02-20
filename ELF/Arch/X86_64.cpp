@@ -135,7 +135,7 @@ void X86_64<ELFT>::writeGotPlt(uint8_t *Buf, const Symbol &S) const {
 
 template <class ELFT> void X86_64<ELFT>::writePltHeader(uint8_t *Buf) const {
   const uint8_t PltData[] = {
-			0x0f, 0x1f, 0x84, 0, 0, 0, 0, 0, // nopq
+			0x0f, 0x1f, 0x84, 0, 0, 2, 0, 0, // nopq
       0xff, 0x35, 0, 0, 0, 0, // pushq GOTPLT+8(%rip)
       0xff, 0x25, 0, 0, 0, 0, // jmp *GOTPLT+16(%rip)
       0x0f, 0x1f, 0x40, 0x00, // nop
@@ -152,7 +152,7 @@ void X86_64<ELFT>::writePlt(uint8_t *Buf, uint64_t GotPltEntryAddr,
                             uint64_t PltEntryAddr, int32_t Index,
                             unsigned RelOff) const {
   const uint8_t Inst[] = {
-			0x0f, 0x1f, 0x84, 0, 0, 0, 0, 0, // nopq
+			0x0f, 0x1f, 0x84, 0, 0, 2, 0, 0, // nopq
       0xff, 0x25, 0, 0, 0, 0, // jmpq *got(%rip)
       0x68, 0, 0, 0, 0,       // pushq <relocation index>
       0xe9, 0, 0, 0, 0,       // jmpq plt[0]
